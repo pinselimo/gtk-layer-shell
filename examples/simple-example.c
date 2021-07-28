@@ -10,7 +10,45 @@
  */
 
 #include "gtk-layer-shell.h"
+#include <stdio.h>
 #include <gtk/gtk.h>
+
+static int32_t
+forkExec() {
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    return pid;
+  }
+
+  // Child executes the command
+  if (!pid) {
+    sigset_t mask;
+    sigfillset(&mask);
+    // Reset sigmask
+    pthread_sigmask(SIG_UNBLOCK, &mask, NULL);
+    setpgid(pid, pid);
+    execl("/bin/sh", "sh", "-c", "footclient", (char*)0);
+    exit(0);
+  } else {
+  }
+
+  return pid;
+}
+
+static void
+on_click ( GtkWidget *widget )
+{
+    printf("Pressed\n");
+    forkExec();
+}
+
+static void
+on_release ( GtkWidget *widget )
+{
+    printf("Released\n");
+    forkExec();
+}
 
 static void
 activate (GtkApplication* app, void *_data)
@@ -47,12 +85,10 @@ activate (GtkApplication* app, void *_data)
     }
 
     // Set up a widget
-    GtkWidget *label = gtk_label_new ("");
-    gtk_label_set_markup (GTK_LABEL (label),
-                          "<span font_desc=\"20.0\">"
-                              "GTK Layer Shell example!"
-                          "</span>");
-    gtk_container_add (GTK_CONTAINER (gtk_window), label);
+    GtkWidget *button = gtk_button_new_with_label ("Test");
+    g_signal_connect (GTK_BUTTON (button), "pressed", G_CALLBACK (on_click), NULL );
+    g_signal_connect (GTK_BUTTON (button), "released", G_CALLBACK (on_release), NULL );
+    gtk_container_add (GTK_CONTAINER (gtk_window), button);
     gtk_container_set_border_width (GTK_CONTAINER (gtk_window), 12);
     gtk_widget_show_all (GTK_WIDGET (gtk_window));
 }
@@ -66,3 +102,4 @@ main (int argc, char **argv)
     g_object_unref (app);
     return status;
 }
+
